@@ -1,0 +1,1 @@
+@extends('errors.base') @section('code','403') @section('heading','Akses tidak diizinkan') @section('message','Akun Anda tidak memiliki hak untuk data atau tindakan ini. Hubungi Administrator jika cakupan akses perlu diperbarui.')

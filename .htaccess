@@ -1,0 +1,11 @@
+Options -Indexes
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^$ public/ [R=302,L]
+    RewriteRule ^public(?:/|$) - [L]
+    RewriteRule ^.*$ - [F,L]
+</IfModule>
+
+<FilesMatch "^(?:\.env(?:\..*)?|composer\.(?:json|lock)|artisan|phpunit\.xml|scheduler\.bat|LICENSE|.*\.(?:md|txt|log|sql))$">
+    Require all denied
+</FilesMatch>

@@ -1,0 +1,14 @@
+<?php
+namespace App\Http\Controllers;
+use Illuminate\Http\Request;
+use App\Services\{Access,ReportData,Records,Audit};
+use Barryvdh\DomPDF\Facade\Pdf;
+use PhpOffice\PhpSpreadsheet\{Spreadsheet,Writer\Xlsx,Cell\DataType};
+class ReportController {
+ public function index(Request $r){Access::menu('laporan');$v=$r->validate(['bulan'=>'nullable|date_format:Y-m','rt'=>'nullable|integer']);$data=ReportData::collect($v['bulan']??now()->format('Y-m'),isset($v['rt'])?(int)$v['rt']:null);return view('reports',$data+['options'=>Records::options()]);}
+ public function export(Request $r,string $format){Access::menu('laporan');abort_unless(in_array($format,['pdf','xlsx']),404);$v=$r->validate(['bulan'=>'required|date_format:Y-m','rt'=>'nullable|integer']);$data=ReportData::collect($v['bulan'],isset($v['rt'])?(int)$v['rt']:null);Audit::record('ekspor_'.$format,'laporan',null,null,['periode'=>$v['bulan'],'rt'=>$v['rt']??null]);$name='SIRUKUN-'.$v['bulan'];if($format==='pdf')return Pdf::loadView('report-pdf',$data)->setPaper('a4','landscape')->download($name.'.pdf');
+  $book=new Spreadsheet;$sheets=[['Ringkasan',[['Indikator','Jumlah'],['Warga aktif saat ekspor',$data['total']],['KK aktif saat ekspor',$data['kk']],['Mutasi periode',$data['mutasi']->count()],['Permohonan periode',$data['letters']->count()],['Tamu/penghuni dalam periode',$data['guests']->count()]]],['Mutasi',array_merge([['Nama','Jenis','Tanggal','RT','Status']],$data['mutasi']->map(fn($m)=>[$m->nama,$m->jenis,$m->tanggal_peristiwa,$m->rt_nomor,$m->status])->all())],['Surat',array_merge([['Pemohon','Jenis','RT','Status','Nomor Surat']],$data['letters']->map(fn($m)=>[$m->nama,$m->jenis_nama,$m->rt_nomor,$m->status,$m->nomor_surat])->all())],['Tamu dan Penghuni',array_merge([['Nama','Tipe','Alamat','RT','Awal','Akhir Rencana']],$data['guests']->map(fn($m)=>[$m->nama,$m->tipe,$m->alamat,$m->rt_nomor,$m->mulai??$m->tanggal_masuk,$m->rencana_selesai??$m->tanggal_selesai])->all())]];
+  foreach($sheets as $i=>[$title,$rows]){$sheet=$i===0?$book->getActiveSheet():$book->createSheet();$sheet->setTitle($title);foreach($rows as $ri=>$row)foreach($row as $ci=>$value)$sheet->setCellValueExplicit([$ci+1,$ri+1],(string)($value??''),DataType::TYPE_STRING);$last=\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($rows[0]));$sheet->getStyle('A1:'.$last.'1')->getFont()->setBold(true)->getColor()->setARGB('FFFFFFFF');$sheet->getStyle('A1:'.$last.'1')->getFill()->setFillType('solid')->getStartColor()->setARGB('FF163E34');$sheet->freezePane('A2');foreach(range('A',$last) as $col)$sheet->getColumnDimension($col)->setAutoSize(true);}
+  $file=tempnam(storage_path('app/private'),'xlsx');(new Xlsx($book))->save($file);return response()->download($file,$name.'.xlsx',['Content-Type'=>'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'])->deleteFileAfterSend(true);
+ }
+}

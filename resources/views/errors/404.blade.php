@@ -1,0 +1,1 @@
+@extends('errors.base') @section('code','404') @section('heading','Data atau halaman tidak ditemukan') @section('message','Data mungkin tidak tersedia, sudah dihapus, atau berada di luar cakupan akses Anda.')

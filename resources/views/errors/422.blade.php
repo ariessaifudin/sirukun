@@ -1,0 +1,1 @@
+@extends('errors.base') @section('code','422') @section('heading','Tindakan belum dapat diproses') @section('message'){{ $exception->getMessage() ?: 'Periksa kembali data atau tahap pelayanan sebelum melanjutkan.' }}@endsection

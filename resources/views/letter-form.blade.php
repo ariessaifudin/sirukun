@@ -1,0 +1,13 @@
+@extends('layout') @section('title',$row?'Revisi permohonan':'Ajukan surat') @section('content')
+@php($data=$row?json_decode($row->isian,true):[])
+<div class="pagehead"><div><div class="eyebrow">LAYANAN SURAT</div><h1>{{ $row?'Revisi permohonan':'Ajukan surat' }}</h1><p>Pastikan identitas dan keperluan pengajuan sudah sesuai.</p></div><a class="btn secondary" href="{{ url('/surat') }}">← Kembali</a></div><section class="card formcard"><form method="post" action="{{ url($row?'/surat/'.$row->id.'/ubah':'/surat/baru') }}">@csrf
+<div class="input-group">@include('input',['name'=>'warga_id','label'=>'Warga pemohon','choices'=>$options['warga'],'value'=>$row?->warga_id,'required'=>true])
+<div class="field"><label for="jenis-surat">Jenis surat *</label><select id="jenis-surat" name="jenis_surat_id" required>@foreach($types as $j)<option value="{{ $j->id }}" @selected((string)old('jenis_surat_id',$row?->jenis_surat_id)===(string)$j->id)>{{ $j->nama }}</option>@endforeach</select></div></div>
+@foreach($types as $j)<fieldset class="mutasi-fields" data-jenis-surat="{{ $j->id }}"><div class="input-group">
+@if($j->kode==='USAHA')@foreach(['nama_usaha'=>'Nama usaha','jenis_usaha'=>'Jenis usaha','alamat_usaha'=>'Alamat usaha'] as $f=>$label)@include('input',['name'=>'isian['.$f.']','label'=>$label,'value'=>$data[$f]??'','required'=>true,'prefix'=>$j->id])@endforeach
+@elseif($j->kode==='NIKAH')@foreach(['nama_calon'=>'Nama calon pasangan','nik_calon'=>'NIK calon pasangan'] as $f=>$label)@include('input',['name'=>'isian['.$f.']','label'=>$label,'value'=>$data[$f]??'','required'=>true,'prefix'=>$j->id])@endforeach
+@elseif($j->kode==='KTP_KK')@include('input',['name'=>'isian[pengurusan]','label'=>'Jenis pengurusan','choices'=>['KTP baru'=>'KTP baru','KK baru'=>'KK baru','Perubahan KTP/KK'=>'Perubahan KTP/KK'],'value'=>$data['pengurusan']??'','required'=>true,'prefix'=>$j->id])
+@elseif($j->kode==='SKTM')@include('input',['name'=>'isian[tujuan_bantuan]','label'=>'Tujuan bantuan','value'=>$data['tujuan_bantuan']??'','required'=>true,'prefix'=>$j->id])
+@endif</div></fieldset>@endforeach
+@include('input',['name'=>'keperluan','label'=>'Keperluan / keterangan tambahan','type'=>'textarea','value'=>$row?->keperluan,'required'=>true])
+<div class="notice">@if($row)Perubahan isi mengembalikan permohonan ke tahap RT dengan nomor revisi baru. Riwayat persetujuan lama tetap tersimpan.@elsePermohonan diteruskan ke Ketua RT. Dokumen PDF tersedia setelah disahkan Ketua RW.@endif</div><div class="formactions"><button class="btn">✓ {{ $row?'Simpan revisi':'Kirim permohonan' }}</button><a class="btn secondary" href="{{ url('/surat') }}">Batal</a></div></form></section>@endsection

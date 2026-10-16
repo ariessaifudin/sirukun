@@ -1,0 +1,1 @@
+@extends('errors.base') @section('code','500') @section('heading','Terjadi kendala pada layanan') @section('message','Coba kembali beberapa saat lagi. Jika berulang, hubungi Administrator dan sampaikan waktu serta tindakan yang dilakukan.')
