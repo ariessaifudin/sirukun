@@ -1,2 +1,2 @@
 <?php
-return [App\Providers\AppServiceProvider::class];
+return [App\Providers\EncryptionServiceProvider::class, App\Providers\AppServiceProvider::class];

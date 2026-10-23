@@ -1,2 +1,2 @@
 <?php
-return ['default'=>'log','mailers'=>['log'=>['transport'=>'log','channel'=>'single']],'from'=>['address'=>'noreply@localhost','name'=>'SIRUKUN']];
+return ['default'=>'log','mailers'=>['log'=>['transport'=>'log','channel'=>'encrypted']],'from'=>['address'=>'noreply@localhost','name'=>'SIRUKUN']];

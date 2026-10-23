@@ -2,11 +2,6 @@
 namespace App\Services;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Barryvdh\DomPDF\Facade\Pdf;
-use BaconQrCode\Renderer\ImageRenderer;
-use BaconQrCode\Renderer\Image\SvgImageBackEnd;
-use BaconQrCode\Renderer\RendererStyle\RendererStyle;
-use BaconQrCode\Writer;
 class Letters {
  public static function query(){
   $q=DB::table('permohonan_surat as p')->join('warga as w','w.id','=','p.warga_id')->join('jenis_surat as j','j.id','=','p.jenis_surat_id')->join('rt as r','r.id','=','p.rt_id')->leftJoin('surat_terbit as s','s.permohonan_id','=','p.id')->whereNull('p.deleted_at')->select('p.*','w.nama','w.nik','j.nama as jenis_nama','j.kode as jenis_kode','r.nomor as rt_nomor','s.id as surat_id','s.nomor_surat','s.dicabut_pada');
@@ -27,10 +22,8 @@ class Letters {
    $year=(int)now()->format('Y');DB::table('penomoran_surat')->insertOrIgnore(['rw_id'=>$rw->id,'tahun'=>$year,'nomor_terakhir'=>0]);$counter=DB::table('penomoran_surat')->where('rw_id',$rw->id)->where('tahun',$year)->lockForUpdate()->first();$num=$counter->nomor_terakhir+1;
    DB::table('penomoran_surat')->where('rw_id',$rw->id)->where('tahun',$year)->update(['nomor_terakhir'=>$num]);$nomor=str_pad((string)$num,4,'0',STR_PAD_LEFT).'/RT'.$rt->nomor.'/RW'.$rw->kode.'/'.now()->format('m').'/'.$year;
    $token=bin2hex(random_bytes(32));$verify=rtrim(config('app.url'),'/').'/verifikasi/'.$token;
-   $qr=(new Writer(new ImageRenderer(new RendererStyle(130),new SvgImageBackEnd)))->writeString($verify);$qr=preg_replace('/<\?xml.*?\?>/s','',$qr);
    $snapshot=['nama'=>$w->nama,'nik'=>$w->nik,'nomor_kk'=>$kk?->nomor_kk,'alamat'=>$h?->alamat,'rt'=>$rt->nomor,'rw'=>$rw->kode,'lingkungan'=>$rw->nama,'kelurahan'=>$rw->kelurahan,'kecamatan'=>$rw->kecamatan,'kota'=>$rw->kota,'jenis'=>$j->nama,'kode'=>$j->kode,'nomor'=>$nomor,'keperluan'=>$p->keperluan,'isian'=>json_decode($p->isian,true),'catatan_rt'=>$p->catatan_rt,'ketua_rt'=>DB::table('pengguna')->where('id',$rtApproval->pemeriksa_id)->value('nama'),'ketua_rw'=>$u->nama,'tanggal'=>now()->format('d/m/Y'),'verifikasi'=>$verify];
-   $pdf=Pdf::loadView('surat-pdf',['s'=>$snapshot,'qr'=>'data:image/svg+xml;base64,'.base64_encode($qr)])->setPaper('a4')->setOptions(['isRemoteEnabled'=>false,'defaultFont'=>'DejaVu Sans']);
-   $fileId=Files::pdf($pdf->output(),'Surat-'.str_replace('/','-',$nomor).'.pdf');$newPath=DB::table('berkas')->where('id',$fileId)->value('path');
+   $fileId=Files::pdf(LetterPdf::create($snapshot),'Surat-'.str_replace('/','-',$nomor).'.pdf');$newPath=DB::table('berkas')->where('id',$fileId)->value('path');
    $letterId=DB::table('surat_terbit')->insertGetId(['permohonan_id'=>$id,'rw_id'=>$rw->id,'berkas_id'=>$fileId,'penerbit_id'=>$u->id,'tahun'=>$year,'nomor_urut'=>$num,'nomor_surat'=>$nomor,'token_qr_hash'=>hash('sha256',$token),'snapshot'=>json_encode($snapshot),'terbit_pada'=>now(),'created_at'=>now(),'updated_at'=>now()]);
    DB::table('permohonan_surat')->where('id',$id)->update(['status'=>'terbit','updated_at'=>now()]);Audit::record('terbit','surat_terbit',$letterId,null,['nomor_surat'=>$nomor]);return $letterId;
   });}catch(\Throwable $e){if($newPath)Storage::disk('local')->delete($newPath);throw $e;}
